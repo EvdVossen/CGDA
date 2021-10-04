@@ -1,5 +1,5 @@
 # CGDA
-CGDA package to process Continuous Glucose Measurements data
+CGDA package to process Continuous Glucose Measurements data. This package is forked from the open-source package cgmanalysis available at <https://github.com/childhealthbiostatscore/R-Packages/>.
 
 This repository contains several maps and files:
 - CGDA -> The Continuous Glucose Data Analysis package
