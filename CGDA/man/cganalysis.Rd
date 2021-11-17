@@ -4,11 +4,13 @@
 \alias{cganalysis}
 \title{Calculate CGM Variables and makes multiple plots}
 \usage{
-cganalysis <- function(inputdirectory,
+cganalysis(
+inputdirectory = getwd(),
 outputdirectory = tempdir(),
 outputname = "Output",
 metric_option = "mmol/l",
 fsl_source = FALSE,
+date_parse_option = 1,
 aboveexcursionlength = 35,
 belowexcursionlength = 10,
 magedef = "1sd",
@@ -38,7 +40,8 @@ CGM variables (without the file extension).}
 Choose either "mmol/l" or "mg/dl".}
 
 \item{fsl_source}{Whether your data is from a Freestyle-Libre device. Choose
-"TRUE" or "FALSE". if "TRUE", the data files are with ".txt" extension.}
+"TRUE" or "FALSE". \cr
+if "TRUE", the data files are with ".txt" extension. \cr}
 
 \item{aboveexcursionlength}{The number of minutes blood sugar must be above
 threshold to count an excursion. By default 35 minutes.}
@@ -51,8 +54,8 @@ MAGE calculation (e.g. greater than 1 standard deviation).}
 
 \item{congan}{CONGA interval in hours.}
 
-\item{interpolate}{Do you want to interpolate gaps in the data? Choose
-either "TRUE" or "FALSE".}
+\item{interpolate}{Do you want to interpolate gaps in the data? \cr
+Choose either "TRUE" or "FALSE".}
 
 \item{interpolate_function}{Which interpolation function to use. Options are
 "linear" or "spline".}
@@ -60,6 +63,10 @@ either "TRUE" or "FALSE".}
 \item{maximum_gap}{Maximum gap size to interpolate. By default 120 minutes.}
 
 \item{group_names}{Names of the two groups. By default NULL.}
+
+\item{date_parse_option}{The way the time is written in the data (default = 1); \cr
+1: Month/Day/Year Hour:Minutes:Seconds (for example: 1/14/20 12:00) \cr
+2: Year-Month-day Hour:Minutes:Seconds (for example: 2020-01-14 12:00) \cr}
 
 \item{subject_group_1}{Names of the subjects in group 1. By Default NULL.}
 

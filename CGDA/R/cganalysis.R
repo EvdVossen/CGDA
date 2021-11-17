@@ -21,7 +21,11 @@
 #' @param metric_option The type of metric system is included in the data.
 #' Choose either "mmol/l" or "mg/dl".
 #' @param fsl_source Whether your data is from a Freestyle-Libre device. Choose
-#' "TRUE" or "FALSE". if "TRUE", the data files are with ".txt" extension.
+#'    "TRUE" or "FALSE". \cr
+#'    if "TRUE", the data files are with ".txt" extension. \cr
+#' @param date_parse_option The way the time is written in the data (default = 1); \cr
+#'    1: Month/Day/Year Hour:Minutes:Seconds (for example: 1/14/20 12:00) \cr
+#'    2: Year-Month-day Hour:Minutes:Seconds (for example: 2020-01-14 12:00) \cr
 #' @param aboveexcursionlength The number of minutes blood sugar must be above
 #' threshold to count an excursion. By default 35 minutes.
 #' @param belowexcursionlength The number of minutes blood sugar must be below
@@ -29,8 +33,8 @@
 #' @param magedef How large an excursion needs to be in order to count in the
 #' MAGE calculation (e.g. greater than 1 standard deviation).
 #' @param congan CONGA interval in hours.
-#' @param interpolate Do you want to interpolate gaps in the data? Choose
-#' either "TRUE" or "FALSE".
+#' @param interpolate Do you want to interpolate gaps in the data? \cr
+#' Choose either "TRUE" or "FALSE".
 #' @param interpolate_function Which interpolation function to use. Options are
 #' "linear" or "spline".
 #' @param maximum_gap Maximum gap size to interpolate. By default 120 minutes.
@@ -41,11 +45,13 @@
 #' @param subject_group_4 Names of the subjects in group 4. By Default NULL.
 #' @param groups_legend_title Legend title of the aggregate daily overlay
 #' (LOESS Smoothing curve for the two groups)
-#' @usage cganalysis <- function(inputdirectory,
+#' @usage cganalysis(
+#' inputdirectory = getwd(),
 #' outputdirectory = tempdir(),
 #' outputname = "Output",
 #' metric_option = "mmol/l",
 #' fsl_source = FALSE,
+#' date_parse_option = 1,
 #' aboveexcursionlength = 35,
 #' belowexcursionlength = 10,
 #' magedef = "1sd",
@@ -82,6 +88,7 @@ cganalysis <- function(inputdirectory,
                        interpolate_function = 'linear',
                        maximum_gap = 120,
                        group_names = NULL,
+                       date_parse_option = 1,
                        subject_group_1 = NULL,
                        subject_group_2 = NULL,
                        subject_group_3 = NULL,
@@ -193,14 +200,24 @@ cganalysis <- function(inputdirectory,
       subject_id <- table$subject[1]
       cgmupload["subject_id", f] <- subject_id
       # Format columns.
-      dateparseorder <- c("mdy HM")
-      table$timestamp <-
-        base::as.POSIXct(lubridate::parse_date_time(table$timestamp,
-                                                    dateparseorder, tz = "UTC"))
+     if (date_parse_option==1){
+        dateparseorder <- c("mdy HM")
+        table$timestamp <-
+          base::as.POSIXct(lubridate::parse_date_time(table$timestamp,
+                                                      orders = dateparseorder, tz = "UTC"))
+      } else if (date_parse_option==2){
+        table$timestamp <-
+          base::as.POSIXct(table$timestamp,
+                        format = "%Y-%m-%d %H:%M", tz = "UTC")
+
+      } else {
+        stop('Currently only the following time formats are :\n',
+             'option 1: Month/Day/Year Hour:Minutes:Seconds \n',
+             'option 2: Year-Month-day Hour:Minutes:Seconds \n',
+             'Please set date_parse_option = 1 or 2')
+      }
       base::print(paste('Read file with subject:', table$subject[1]))
     }
-
-
 
     if (NA %in% table$timestamp) {
       table <- table[-c(base::which(base::is.na(table$timestamp))),
@@ -208,6 +225,14 @@ cganalysis <- function(inputdirectory,
     }
     table <- dplyr::arrange(table, timestamp)
     interval <- base::abs(pracma::Mode(base::diff(base::as.numeric(table$timestamp))))
+
+    if(nrow(table)==0){
+      stop('Something might have gone wrong by choosing the date_parse_option. Choose 1 or 2: \n',
+           '1: Month/Day/Year Hour:Minutes:Seconds \n',
+           '2: Year-Month-day Hour:Minutes:Seconds \n',
+           'Please specify date_parse_option = 1 or date_parse_option = 2.')
+    }
+
     table$subjectid <- subject_id
 
     #part for the summary statistics
@@ -1054,20 +1079,29 @@ cganalysis <- function(inputdirectory,
   graphics::plot(aggAGPloessBasic)
   grDevices::dev.off()
 
-  #Aggregate with datapoints colored within the respective glucose_thresholds including LOESS smoothing curve
+  #Aggregate with data points colored within the respective glucose_thresholds including LOESS smoothing curve
   aggregateAGPdata$color<-
     base::cut(aggregateAGPdata$sensorglucose, breaks = metrics$glucose_thresholds_plot,
-              include.lowest = TRUE)
+              include.lowest = T)
+  aggregateAGPdata$label<-
+    base::ifelse(aggregateAGPdata$color=="[-Inf,3]", glucose_interval_levels[1],
+                 base::ifelse(aggregateAGPdata$color=="(3,3.9]",glucose_interval_levels[2],
+                              base::ifelse(aggregateAGPdata$color=="(3.9,10]",glucose_interval_levels[3],
+                                           base::ifelse(aggregateAGPdata$color=="(10,13.9]",glucose_interval_levels[4],
+                                                        glucose_interval_levels[5]))))
+  PallettePlot <- c("under 3 mmol/l"  = "#A71B29", "over 3 under 3.9 mmol/l" = "#ED1C24",
+                 "over 3.9 under 10 mmol/l" = "#5ABC68", "over 10 under 13.9 mmol/l" = "#FFF200",
+                 "over 13.9 mmol/l" = "#FDB813")
   aggregateAGPdata <- aggregateAGPdata[!base::is.na(aggregateAGPdata$sensorglucose),]
   aggAGPloessThresCol <-
     ggplot2::ggplot(aggregateAGPdata, ggplot2::aes(x = time, y = sensorglucose)) +
     ggplot2::geom_smooth(ggplot2::aes(y = sensorglucose), se = FALSE, na.rm=TRUE) +
-    ggplot2::geom_point(ggplot2::aes(y = sensorglucose, colour = color), size = 0.2, na.rm=TRUE) +
+    ggplot2::geom_point(ggplot2::aes(y = sensorglucose, colour = label), size = 0.2, na.rm=TRUE) +
     ggplot2::ggtitle(plot_title_aggregate) +
     ggplot2::ylab(metrics$yaxis_label) +
     ggplot2::xlab(xaxis_label) +
     ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5)) +
-    ggplot2::scale_color_manual(name = 'Intervals', values = c(metrics$glucose_threshold_colors), labels=glucose_interval_levels) +
+    ggplot2::scale_color_manual(name = 'Intervals', values = PallettePlot) +
     ggplot2::scale_x_datetime(labels = function(x) base::format(x, format = "%H:%M")) +
     ggplot2::ylim(metrics$yaxis_range_for_plotting[1], metrics$yaxis_range_for_plotting[2]) +
     ggplot2::theme_light()
