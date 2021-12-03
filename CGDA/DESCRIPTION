@@ -1,6 +1,6 @@
 Package: CGDA
 Title: Continuous Glucose Data Analysis
-Version: 0.8
+Version: 0.8.1
 Authors@R: 
   c(person(given = "Diogo",
            family = "Bastos",

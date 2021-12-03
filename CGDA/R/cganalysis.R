@@ -243,6 +243,10 @@ cganalysis <- function(inputdirectory,
     #Make 24 hour chunks starting from 00:00 to 23:59
     table <- Formatfirstlastdays(table)
 
+    if(nrow(table)==0){
+      base::print('This subject does not have any good days and will therefore be skipped.')
+      next
+    }
     totaltime <- base::as.numeric(base::difftime(base::max(table$timestamp, na.rm = T),
                                                  base::min(table$timestamp, na.rm = T),
                                                  units = "secs"))
