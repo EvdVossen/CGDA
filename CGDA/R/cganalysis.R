@@ -25,6 +25,7 @@
 #'    if "TRUE", the data files are with ".txt" extension. \cr
 #' @param date_parse_option The way the time is written in the data (default = 1); \cr
 #'    1: Month/Day/Year Hour:Minutes:Seconds (for example: 1/14/20 12:00) \cr
+#'    2: Year/Month/day Hour:Minutes:Seconds (for example: 2020/01/14 12:00) \cr
 #'    2: Year-Month-day Hour:Minutes:Seconds (for example: 2020-01-14 12:00) \cr
 #' @param aboveexcursionlength The number of minutes blood sugar must be above
 #' threshold to count an excursion. By default 35 minutes.
@@ -94,6 +95,26 @@ cganalysis <- function(inputdirectory,
                        subject_group_3 = NULL,
                        subject_group_4 = NULL,
                        groups_legend_title = 'Group Legend Title') {
+
+  inputdirectory = input_path
+  outputdirectory = output_path
+  metric_option = "mg/dl"
+  fsl_source = FALSE
+  aboveexcursionlength = 35
+  belowexcursionlength = 10
+  magedef = "1sd"
+  congan = 1
+  interpolate = FALSE
+  interpolate_function = 'linear'
+  maximum_gap = 120
+  group_names = NULL
+  date_parse_option = 2
+  subject_group_1 = NULL
+  subject_group_2 = NULL
+  subject_group_3 = NULL
+  subject_group_4 = NULL
+  groups_legend_title = 'Group Legend Title'
+
 
   if (interpolate){
     plot_interpolation <- TRUE
@@ -208,12 +229,15 @@ cganalysis <- function(inputdirectory,
       } else if (date_parse_option==2){
         table$timestamp <-
           base::as.POSIXct(table$timestamp,
-                        format = "%Y-%m-%d %H:%M", tz = "UTC")
-
-      } else {
-        stop('Currently only the following time formats are :\n',
+                           format = "%Y/%m/%d %H:%M", tz = "UTC")
+        } else if (date_parse_option==3){
+        table$timestamp <-
+          base::as.POSIXct(table$timestamp,
+                           format = "%Y-%m-%d %H:%M", tz = "UTC")
+        } else { stop('Currently only the following time formats are :\n',
              'option 1: Month/Day/Year Hour:Minutes:Seconds \n',
-             'option 2: Year-Month-day Hour:Minutes:Seconds \n',
+             'option 2: Year/Month/Day Hour:Minutes:Seconds \n',
+             'option 3: Year-Month-Day Hour:Minutes:Seconds \n',
              'Please set date_parse_option = 1 or 2')
       }
       base::print(paste('Read file with subject:', table$subject[1]))
@@ -227,10 +251,11 @@ cganalysis <- function(inputdirectory,
     interval <- base::abs(pracma::Mode(base::diff(base::as.numeric(table$timestamp))))
 
     if(nrow(table)==0){
-      stop('Something might have gone wrong by choosing the date_parse_option. Choose 1 or 2: \n',
-           '1: Month/Day/Year Hour:Minutes:Seconds \n',
-           '2: Year-Month-day Hour:Minutes:Seconds \n',
-           'Please specify date_parse_option = 1 or date_parse_option = 2.')
+      stop('Something might have gone wrong by choosing the date_parse_option. Choose 1, 2 or 3: \n',
+           'option 1: Month/Day/Year Hour:Minutes:Seconds \n',
+           'option 2: Year/Month/Day Hour:Minutes:Seconds \n',
+           'option 3: Year-Month-Day Hour:Minutes:Seconds \n',
+           'Please specify date_parse_option = 1 or date_parse_option = 2 or date_parse_option = 3.')
     }
 
     table$subjectid <- subject_id
@@ -1087,15 +1112,30 @@ cganalysis <- function(inputdirectory,
   aggregateAGPdata$color<-
     base::cut(aggregateAGPdata$sensorglucose, breaks = metrics$glucose_thresholds_plot,
               include.lowest = T)
-  aggregateAGPdata$label<-
-    base::ifelse(aggregateAGPdata$color=="[-Inf,3]", glucose_interval_levels[1],
-                 base::ifelse(aggregateAGPdata$color=="(3,3.9]",glucose_interval_levels[2],
-                              base::ifelse(aggregateAGPdata$color=="(3.9,10]",glucose_interval_levels[3],
-                                           base::ifelse(aggregateAGPdata$color=="(10,13.9]",glucose_interval_levels[4],
-                                                        glucose_interval_levels[5]))))
-  PallettePlot <- c("under 3 mmol/l"  = "#A71B29", "over 3 under 3.9 mmol/l" = "#ED1C24",
+
+  if(metric_option=="mmol/l"){
+    aggregateAGPdata$label<-
+      base::ifelse(aggregateAGPdata$color=="[-Inf,3]", glucose_interval_levels[1],
+                   base::ifelse(aggregateAGPdata$color=="(3,3.9]",glucose_interval_levels[2],
+                                base::ifelse(aggregateAGPdata$color=="(3.9,10]",glucose_interval_levels[3],
+                                             base::ifelse(aggregateAGPdata$color=="(10,13.9]",glucose_interval_levels[4],
+                                                          glucose_interval_levels[5]))))
+    PallettePlot <- c("under 3 mmol/l"  = "#A71B29", "over 3 under 3.9 mmol/l" = "#ED1C24",
                  "over 3.9 under 10 mmol/l" = "#5ABC68", "over 10 under 13.9 mmol/l" = "#FFF200",
                  "over 13.9 mmol/l" = "#FDB813")
+  } else {
+    aggregateAGPdata$label<-
+      base::ifelse(aggregateAGPdata$color=="[-Inf,54]", glucose_interval_levels[1],
+                   base::ifelse(aggregateAGPdata$color=="(54,70]",glucose_interval_levels[2],
+                                base::ifelse(aggregateAGPdata$color=="(70,180]",glucose_interval_levels[3],
+                                             base::ifelse(aggregateAGPdata$color=="(180,250]",glucose_interval_levels[4],
+                                                          glucose_interval_levels[5]))))
+    PallettePlot <- c("under 54 mg/dl"  = "#A71B29", "over 54 under 70 mg/dl" = "#ED1C24",
+                      "over 70 under 180 mg/dl" = "#5ABC68", "over 180 under 250 mg/dl" = "#FFF200",
+                      "over 250 mg/dl" = "#FDB813")
+
+  }
+
   aggregateAGPdata <- aggregateAGPdata[!base::is.na(aggregateAGPdata$sensorglucose),]
   aggAGPloessThresCol <-
     ggplot2::ggplot(aggregateAGPdata, ggplot2::aes(x = time, y = sensorglucose)) +

@@ -66,6 +66,7 @@ Choose either "TRUE" or "FALSE".}
 
 \item{date_parse_option}{The way the time is written in the data (default = 1); \cr
 1: Month/Day/Year Hour:Minutes:Seconds (for example: 1/14/20 12:00) \cr
+2: Year/Month/day Hour:Minutes:Seconds (for example: 2020/01/14 12:00) \cr
 2: Year-Month-day Hour:Minutes:Seconds (for example: 2020-01-14 12:00) \cr}
 
 \item{subject_group_1}{Names of the subjects in group 1. By Default NULL.}
