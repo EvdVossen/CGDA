@@ -96,26 +96,6 @@ cganalysis <- function(inputdirectory,
                        subject_group_4 = NULL,
                        groups_legend_title = 'Group Legend Title') {
 
-  inputdirectory = input_path
-  outputdirectory = output_path
-  metric_option = "mg/dl"
-  fsl_source = FALSE
-  aboveexcursionlength = 35
-  belowexcursionlength = 10
-  magedef = "1sd"
-  congan = 1
-  interpolate = FALSE
-  interpolate_function = 'linear'
-  maximum_gap = 120
-  group_names = NULL
-  date_parse_option = 2
-  subject_group_1 = NULL
-  subject_group_2 = NULL
-  subject_group_3 = NULL
-  subject_group_4 = NULL
-  groups_legend_title = 'Group Legend Title'
-
-
   if (interpolate){
     plot_interpolation <- TRUE
   } else {
